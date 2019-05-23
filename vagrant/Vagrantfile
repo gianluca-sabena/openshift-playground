@@ -1,0 +1,119 @@
+# -*- mode: ruby -*-
+# # vi: set ft=ruby :
+
+Vagrant.require_version ">= 1.9.0"
+
+$fqdn = "vm.local"
+
+# Masters
+$master_name_prefix = "okd-master"
+$master_instances = 1
+$master_memory = 4096
+$master_cpus = 2
+$master_executioncap = 100 # Max host cpu used by any vm
+
+# Worker
+$worker_name_prefix = "okd-worker"
+$worker_instances = 3
+$worker_memory = 2048
+$worker_cpus = 2
+$worker_executioncap = 75 # Max host cpu used by any vm
+
+# required to have accurate time synch - Must be enbaled for openshift ceph
+def config_time_sync(config, vb)
+  # Require plugin https://github.com/dotless-de/vagrant-vbguest
+  config.vbguest.auto_update = true
+  # sync time every 10 seconds
+  vb.customize [ "guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-interval", 10000 ]
+  # adjustments if drift > 100 ms
+  vb.customize [ "guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-min-adjust", 100 ]
+  # sync time on restore
+  vb.customize [ "guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-on-restore", 1 ]
+  # sync time on start
+  vb.customize [ "guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-start", 1 ]
+  # at 1 second drift, the time will be set and not "smoothly" adjusted
+  vb.customize [ "guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 1000 ]  
+end
+
+# # https://github.com/hashicorp/vagrant/issues/4015#issuecomment-131440075
+# Vagrant is 'state declarative' cant react to single state change, so we need to remove sata controller manually
+# Manual remove sata controller VBoxManage storagectl VM_NAME_OR_ID --remove --name 'SATA Controller'
+# In case of sata or disk error:
+# - vagrant: stop all vm
+# - from vbox gui: remove sata driver, detach disk and delete disk
+# - delete folder sata_hdd
+# - vagrant reload 
+def add_hdd(vm_name, vb)
+  root_dir = File.dirname(File.expand_path(__FILE__))
+  file_disk = File.join(root_dir, "sata_hdd/#{vm_name}_hdd1.vdi")
+  unless File.exist?(File.expand_path(file_disk))
+    puts "**** Adding SATA Controller *****"
+    vb.customize ["storagectl", :id, "--name", "SATA Controller", "--add", "sata"]
+    vb.customize ['createhd', '--filename', File.expand_path(file_disk), '--variant', 'Fixed', '--size', 10 * 1024]
+  end
+  vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 0, '--device', 0, '--type', 'hdd', '--medium', File.expand_path(file_disk)]
+end
+
+Vagrant.configure("2") do |config|
+  # always use Vagrants insecure key
+  config.vm.box = "centos/7"
+  config.ssh.insert_key = false
+  config.vbguest.auto_update = true # required for accurate timesync
+  config.vm.synced_folder ".", "/vagrant", disabled: true # disbale default shared folder
+
+  # Must be enbaled for openshift - Require vagrant-hostmanager plugin
+  # configure the host's /etc/hosts with vm names
+  config.hostmanager.enabled = true
+  config.hostmanager.manage_host = true
+
+  # --- Configure master virtual machines
+  (1..$master_instances).each do |i|
+    config.vm.define vm_name = "%s-%02d.%s" % [$master_name_prefix, i, $fqdn] do |config_vm|
+      config_vm.vm.hostname = vm_name
+      config_vm.vm.provider :virtualbox do |vb|   
+
+        vb.gui = false
+        add_hdd(vm_name, vb)
+        config_time_sync(config, vb)
+        vb.memory = $master_memory
+        vb.cpus = $master_cpus
+        if $master_executioncap < 100
+          vb.customize ["modifyvm", :id, "--cpuexecutioncap", $master_executioncap]
+        end
+      end
+      ip = "192.168.50.#{i+100}"
+      config_vm.vm.network :private_network, ip: ip
+      # Ansible Provisioning
+      # Inventory file is .vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory
+      config_vm.vm.provision :ansible do |ansible|
+        ansible.playbook = "ansible/provision-masters.yml"
+        ansible.compatibility_mode="2.0"
+      end
+    end
+  end
+  # --- Configure worker virtual machines
+  (1..$worker_instances).each do |i|
+    config.vm.define vm_name = "%s-%02d.%s" % [$worker_name_prefix, i, $fqdn] do |config_vm|
+      config_vm.vm.hostname = vm_name
+      config_vm.vm.provider :virtualbox do |vb|
+        vb.gui = false
+        add_hdd(vm_name, vb)
+        config_time_sync(config, vb)
+        vb.memory = $worker_memory
+        vb.cpus = $worker_cpus
+        if $worker_executioncap < 100
+          vb.customize ["modifyvm", :id, "--cpuexecutioncap", $worker_executioncap]
+        end
+      end
+      ip = "192.168.50.#{i+150}"
+      config_vm.vm.network :private_network, ip: ip
+    end
+  end
+  # Common provisioner
+  config.vm.provision :ansible do |ansible|
+    ansible.playbook = "ansible/provision-all.yml"
+    ansible.compatibility_mode="2.0"
+  end
+
+
+end

@@ -1,0 +1,39 @@
+# From https://github.com/rook/rook/blob/release-1.0/cluster/examples/kubernetes/ceph/dashboard-external-https.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rook-ceph-mgr-dashboard-external-https
+  namespace: rook-ceph
+  labels:
+    app: rook-ceph-mgr
+    rook_cluster: rook-ceph
+spec:
+  ports:
+  - name: dashboard
+    port: 8443
+    protocol: TCP
+    targetPort: 8443
+  selector:
+    app: rook-ceph-mgr
+    rook_cluster: rook-ceph
+  sessionAffinity: None
+  type: NodePort
+# Custom route
+---
+apiVersion: v1
+kind: Route
+metadata:
+  name: rook-ceph-mgr-dashboard-external-https
+  namespace: rook-ceph
+  labels:
+    app: rook-ceph-mgr
+spec:
+  to:
+    kind: Service
+    # Match against service metadata name
+    name: rook-ceph-mgr-dashboard-external-https 
+  tls:
+    termination: passthrough 
+  port:
+    targetPort: dashboard

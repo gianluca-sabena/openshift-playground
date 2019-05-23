@@ -1,0 +1,16 @@
+# Example from an Ansible Playbook
+---
+- hosts:
+  - all
+
+  tasks:
+  - name: restart service cron on centos, in all cases, also issue daemon-reload to pick up config changes
+    systemd:
+      state: restarted
+      daemon_reload: yes
+      name: "{{item}}"
+    with_items:
+    - etcd
+    - origin-master-api
+    - origin-master-controllers
+    - origin-node

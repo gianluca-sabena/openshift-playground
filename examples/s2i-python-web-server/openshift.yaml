@@ -1,0 +1,48 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: s2i-python-web-server
+  labels:
+    app: s2i-python-web-server
+spec:
+  containers:
+    - name: s2i-python-web-server
+      image: "centos/python-36-centos7:latest"
+      command: ["/bin/sh"]
+      args: ["-c", "echo 'hello world' > hello-world.txt && python -m http.server  8000 "]    
+      ports:
+        - name: http
+          containerPort: 8000
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: s2i-python-web-server
+  labels:
+    app: s2i-python-web-server  
+spec:
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 8000
+  # Match against pod label(s)
+  selector:
+    app: s2i-python-web-server
+  type: ClusterIP
+  sessionAffinity: None
+---
+apiVersion: v1
+kind: Route
+metadata:
+  name: s2i-python-web-server
+  labels:
+    app: s2i-python-web-server
+spec:
+  to:
+    kind: Service
+    # Match against service metadata name
+    name: s2i-python-web-server 
+  port:
+    targetPort: http

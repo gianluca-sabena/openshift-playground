@@ -1,0 +1,55 @@
+# Prepare the bastion server (where ansible will run)
+# Based on https://docs.okd.io/latest/install/host_preparation.html
+#  - WARNING: change the anisble version to the one listed here https://github.com/openshift/openshift-ansible#setup
+#  - invalid master config bug https://bugzilla.redhat.com/show_bug.cgi?id=1638699
+#  - EPEL is NOT required
+#  - checkout last version tag of https://github.com/openshift/openshift-ansible since it backport some bugs
+---
+- hosts:
+  - all
+  become: yes
+  become_user: root
+  gather_facts: False # Faster
+
+  tasks:
+  - copy:
+      src: ./host-3-11-cluster.localhost
+      dest: /opt/host-3-11-cluster.localhost
+  - copy:
+      src: ./ping.yml
+      dest: /opt/ping.yml
+  - copy:
+      src: /${HOME}/.vagrant.d/insecure_private_key
+      dest: /opt/insecure_private_key
+      mode: 0600
+  - yum:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - wget
+      - git
+      - net-tools
+      - bind-utils
+      - yum-utils
+      - iptables-services
+      - bridge-utils
+      - bash-completion
+      - kexec-tools
+      - sos
+      - psacct
+      - centos-release-openshift-origin311
+  - yum:
+      name: "openshift-ansible"
+
+#    - https://releases.ansible.com/ansible/rpm/release/epel-7-x86_64/ansible-2.7.1-1.el7.ans.noarch.rpm
+#  - shell: 'yum -y --nogpgcheck localinstall https://releases.ansible.com/ansible/rpm/release/epel-7-x86_64/ansible-2.6.5-1.el7.ans.noarch.rpm'
+  - git:
+      repo: 'https://github.com/openshift/openshift-ansible.git'
+      dest: '/opt/openshift-ansible'
+      version: openshift-ansible-3.11.114-1 
+      
+#openshift-ansible-3.11.103-1 # Fix this https://github.com/openshift/openshift-ansible/pull/10812
+
+# Induce an exception to see what happens
+# - ping:
+#     data: crash

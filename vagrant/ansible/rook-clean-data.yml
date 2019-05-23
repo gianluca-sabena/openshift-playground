@@ -1,0 +1,36 @@
+---
+- hosts:
+  - all
+  become: yes
+  become_user: root
+  gather_facts: False # Faster
+
+  tasks:
+  - name: Delete rook folders
+    file:
+      path: "{{ item }}"
+      state: absent
+    with_items:
+      - /var/lib/rook
+      - /opt/openshift/rook
+      - /usr/libexec/kubernetes/kubelet-plugins/volume/exec/ceph.rook.io~rook
+      - /usr/libexec/kubernetes/kubelet-plugins/volume/exec/ceph.rook.io~rook-ceph
+      - /usr/libexec/kubernetes/kubelet-plugins/volume/exec/rook.io~rook
+      - /usr/libexec/kubernetes/kubelet-plugins/volume/exec/rook.io~rook-ceph
+      - /etc/kubernetes/kubelet-plugins/volume/exec/ceph.rook.io~rook-ceph
+      - /etc/kubernetes/kubelet-plugins/volume/exec/ceph.rook.io~rook
+      - /etc/kubernetes/kubelet-plugins/volume/exec/rook.io~rook-ceph
+      - /etc/kubernetes/kubelet-plugins/volume/exec/rook.io~rook
+  - name: DOCKER | clean
+    shell: docker system prune -a -f
+  - name: ROOK | Clean up resources LVM entries
+    shell: sudo rm -rf /dev/mapper/ceph--* && sudo rm -rf /dev/ceph-* 
+  
+  - name : ROOK | Clean configuration directory
+    shell: sudo rm -rf /opt/openshift/rook
+  
+  - name: ROOK | Running DMSETUP
+    shell: for i in $(sudo dmsetup ls | grep ceph | awk '{print $1}'); do sudo dmsetup remove $i; done 
+    
+  - name: ROOK | Running wipefs on /dev/sdb
+    shell: sudo wipefs -af /dev/sdb

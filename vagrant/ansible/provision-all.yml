@@ -1,0 +1,22 @@
+---
+- hosts:
+  - all
+  become: yes
+  become_user: root
+  gather_facts: False # Faster
+
+  tasks:
+  # If use vagrant vm.hostname, hostname is set to localhost, but this may
+  # create problems with openshift bind to private network ip
+  - name: prevent hostname from binding to the loopback address
+    lineinfile: dest=/etc/hosts
+                state=absent 
+                regexp='^127.0.0.1\s*{{inventory_hostname}}' 
+  # Disable swap 
+  - name: Disable SWAP
+    shell: swapoff -a
+  - name: Disable SWAP
+    replace:
+      path: /etc/fstab
+      regexp: '^(\/swapfile.*)$'
+      replace: '# \1'

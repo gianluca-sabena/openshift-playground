@@ -1,0 +1,18 @@
+# Example from an Ansible Playbook
+---
+- hosts:
+  - all
+  #gather_facts: False # Faster
+
+  tasks:
+  #- ping:
+  - shell: whoami
+    register: out
+  - debug: msg="{{ out.stdout }}"
+  - debug: msg="{{ out.stderr }}"
+  - debug:
+      msg: "inventory_hostname {{ inventory_hostname }}"
+      #msg: "openshift_public_hostname {{ openshift_public_hostname }} - inventory_hostname {{ inventory_hostname }}"
+# Induce an exception to see what happens
+# - ping:
+#     data: crash

@@ -1,0 +1,46 @@
+# Example from an Ansible Playbook
+---
+- hosts:
+  - nfs
+  #gather_facts: False # Faster
+
+  
+  tasks:
+  - name: "Delete PV NFS dir"
+    file:
+      path: "{{item}}"
+      state: absent
+    with_items:
+      - /exports/pv00
+      - /exports/pv01
+      - /exports/pv02
+      - /exports/pv03
+      - /exports/pv04
+  - name: "Create PV NFS dir"
+    file:
+      path: "{{item}}"
+      state: directory
+      mode: 0777
+      owner: nfsnobody
+      group: nfsnobody
+    with_items:
+      - /exports/pv00
+      - /exports/pv01
+      - /exports/pv02
+      - /exports/pv03
+      - /exports/pv04
+  - name: "Create PV NFS export"
+    lineinfile:
+      path: "/etc/exports.d/pv.exports"
+      create: true
+      state: present
+      line: "{{item}}"
+    with_items:
+      - "\"/exports/pv00\" *(rw,root_squash)"
+      - "\"/exports/pv01\" *(rw,root_squash)"
+      - "\"/exports/pv02\" *(rw,root_squash)"
+      - "\"/exports/pv03\" *(rw,root_squash)"
+      - "\"/exports/pv04\" *(rw,root_squash)"
+
+  - name: Re-export NFS filesystems
+    command: exportfs -ar
