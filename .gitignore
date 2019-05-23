@@ -1,4 +1,5 @@
 vagrant/sata_hdd
+vagrant/ide_hdd
 .DS_Store
 .code
 .vagrant

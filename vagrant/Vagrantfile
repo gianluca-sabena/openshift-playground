@@ -8,14 +8,14 @@ $fqdn = "vm.local"
 # Masters
 $master_name_prefix = "okd-master"
 $master_instances = 1
-$master_memory = 4096
-$master_cpus = 2
-$master_executioncap = 100 # Max host cpu used by any vm
+$master_memory = 1024 * 6
+$master_cpus = 4
+$master_executioncap = 75 # Max host cpu used by any vm
 
 # Worker
 $worker_name_prefix = "okd-worker"
 $worker_instances = 3
-$worker_memory = 2048
+$worker_memory = 1024 * 3
 $worker_cpus = 2
 $worker_executioncap = 75 # Max host cpu used by any vm
 
@@ -54,6 +54,15 @@ def add_hdd(vm_name, vb)
   vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 0, '--device', 0, '--type', 'hdd', '--medium', File.expand_path(file_disk)]
 end
 
+def add_hdd_ide(vm_name, vb, gb)
+  root_dir = File.dirname(File.expand_path(__FILE__))
+  file_disk = File.join(root_dir, "ide_hdd/#{vm_name}_hdd1.vdi")
+  unless File.exist?(File.expand_path(file_disk))
+    vb.customize ['createhd', '--filename', File.expand_path(file_disk), '--variant', 'Fixed', '--size', gb * 1024]
+  end
+  vb.customize ['storageattach', :id, '--storagectl', 'IDE', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', File.expand_path(file_disk)]
+end
+
 Vagrant.configure("2") do |config|
   # always use Vagrants insecure key
   config.vm.box = "centos/7"
@@ -73,7 +82,7 @@ Vagrant.configure("2") do |config|
       config_vm.vm.provider :virtualbox do |vb|   
 
         vb.gui = false
-        add_hdd(vm_name, vb)
+        add_hdd_ide(vm_name, vb, 10)
         config_time_sync(config, vb)
         vb.memory = $master_memory
         vb.cpus = $master_cpus
@@ -97,7 +106,7 @@ Vagrant.configure("2") do |config|
       config_vm.vm.hostname = vm_name
       config_vm.vm.provider :virtualbox do |vb|
         vb.gui = false
-        add_hdd(vm_name, vb)
+        add_hdd_ide(vm_name, vb, 10)
         config_time_sync(config, vb)
         vb.memory = $worker_memory
         vb.cpus = $worker_cpus

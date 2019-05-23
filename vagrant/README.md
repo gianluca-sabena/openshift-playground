@@ -2,10 +2,15 @@
 
 Install vagrant <https://www.vagrantup.com>
 
+Install or upgrade required vagrant plugins:
+
+- `vagrant-hostmanager`
+- `vagrant-vbguest`
+
 ## Vagrant cluster
 
-- Edit vagrant file and tune resources: memory and cpu
-- (optional) Edit openshift [ansible inventory](./vagrant/ansible/host-3-11-cluster.localhost)
+- Edit [vagrant file](./Vagrantfile) to tune resources: memory and cpu
+- (optional) Edit openshift [ansible inventory](./ansible/host-3-11-cluster.localhost)
 
 Run `vagrant up`
 
@@ -32,13 +37,10 @@ Run This steps from bastion server
 - create user admin `oc create user admin && oc adm policy add-cluster-role-to-user cluster-admin admin`
 - uninstall `ansible-playbook -i /opt/host-3-11-cluster.localhost /opt/openshift-ansible/playbooks/adhoc/uninstall.yml`
 
-## Run
+Open web console at <https://okd-master-01.vm.local:8443>
 
-- open web console <https://okd-master-01.vm.local:8443>
+Use helper script [openshift.sh](../openshift.sh) for common tasks: login, run example, ...
 
 ## Notes
 
-- Test with `openshift-ansible-3.11.114-1`
-
-
-Run nfs-example `./scripts/openshift.sh create-nfs-example`
+- Tested with `openshift-ansible-3.11.114-1`

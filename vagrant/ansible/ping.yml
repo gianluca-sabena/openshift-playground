@@ -13,6 +13,10 @@
   - debug:
       msg: "inventory_hostname {{ inventory_hostname }}"
       #msg: "openshift_public_hostname {{ openshift_public_hostname }} - inventory_hostname {{ inventory_hostname }}"
+  - name: Get disk info
+    shell: lsblk
+    register: out
+  - debug: msg="{{ out }}"
 # Induce an exception to see what happens
 # - ping:
 #     data: crash

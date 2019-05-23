@@ -4,7 +4,7 @@
 Test openshift with:
 
 - [vagrant cluster](./vagrant/README.md) - Install a full cluster with official ansible scripts
-- [examples](./examples) - deploy examples to openshift
+- [examples](./examples/README.md) - deploy examples to openshift
 
 ## Resources
 
@@ -17,12 +17,7 @@ Test openshift with:
 - Enable shell completion `source <(oc completion bash)` or `source <(oc completion zsh)`
 - Openshift CLI image openshift/origin-cli from <https://hub.docker.com/r/openshift/origin-cli/> It is based on CentOS
 
-## Examples
 
-See [openshift.sh](./openshift.sh)
-
-- [rook cluster](./examples/rook)
-- [s2i-python-web-server](./examples/s2i-python-web-server)
 
 ## TODO
 
