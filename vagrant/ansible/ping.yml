@@ -8,11 +8,9 @@
   #- ping:
   - shell: whoami
     register: out
-  - debug: msg="{{ out.stdout }}"
-  - debug: msg="{{ out.stderr }}"
+  - debug: msg="{{ out }}"
   - debug:
       msg: "inventory_hostname {{ inventory_hostname }}"
-      #msg: "openshift_public_hostname {{ openshift_public_hostname }} - inventory_hostname {{ inventory_hostname }}"
   - name: Get disk info
     shell: lsblk
     register: out

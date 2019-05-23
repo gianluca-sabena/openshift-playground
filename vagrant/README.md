@@ -19,18 +19,18 @@ Run `vagrant up`
 Bastion node is the server where ansible installation scripts run
 
 - Vagrant supports ansible provisioner
-- Vagrant generate an inventory files in `.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory`
-- This inventory works from local terminal `export ANSIBLE_HOST_KEY_CHECKING=False && ansible-playbook -i .vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory ansible/ping.yml`
-- (optional) Nfs Prepare nfs server for pv storage [./ansible/nfs-exports.yml](./ansible/nfs-exports.yml) - see nfs example in [examples](../../examples/manage.sh) folder
+- Vagrant generate an inventory files in `vagrant/.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory`
+- This inventory works from local terminal `export ANSIBLE_HOST_KEY_CHECKING=False && ansible-playbook -i vagrant/.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory vagrant/ansible/ping.yml`
 
 ## Install cluster
 
-Run This steps from bastion server
+First **ssh login to bastion (master)** server `vagrant ssh okd-master-01.vm.local`
 
-- First login to bastion server `vagrant ssh okd-master-01.vm.local`
+Run This steps from bastion (master) server
+
 - **IMPORTANT!** sudo `sudo su`
 - `cd /opt/openshift-ansible`
-- **IMPORTANT!** `git checkout Latest tag for your release!` 
+- `git status` check if git tag is `openshift-ansible-3.11.114-1` 
 - test inventory `ansible-playbook -i /opt/host-3-11-cluster.localhost /opt/ping.yml`
 - install openshift prerequisites `ansible-playbook -i /opt/host-3-11-cluster.localhost /opt/openshift-ansible/playbooks/prerequisites.yml`
 - install openshift cluster `ansible-playbook -i /opt/host-3-11-cluster.localhost /opt/openshift-ansible/playbooks/deploy_cluster.yml`
@@ -44,3 +44,4 @@ Use helper script [openshift.sh](../openshift.sh) for common tasks: login, run e
 ## Notes
 
 - Tested with `openshift-ansible-3.11.114-1`
+- Add/fix nfs example <https://docs.okd.io/3.11/install/configuring_inventory_file.html#configuring-oab-storage>

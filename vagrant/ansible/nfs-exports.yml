@@ -1,4 +1,5 @@
 # Example from an Ansible Playbook
+# Require a nfs openshift node https://docs.okd.io/3.11/install/configuring_inventory_file.html#configuring-oab-storage
 ---
 - hosts:
   - nfs
