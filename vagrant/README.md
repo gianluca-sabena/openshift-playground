@@ -28,19 +28,6 @@ Bastion node is the server where ansible installation scripts run
 
 Use [openshift.sh](../openshift.sh) with param `./openshift.sh vagrant-install-openshift`
 
-First **ssh login to bastion (master)** server `vagrant ssh okd-master-01.vm.local`
-
-Run This steps from bastion (master) server
-
-- **IMPORTANT!** sudo `sudo su`
-- `cd /opt/openshift-ansible`
-- `git status` check if git tag is `openshift-ansible-3.11.114-1`
-- test inventory `ansible-playbook -i /opt/host-3-11-cluster.localhost /opt/ansible/ping.yml`
-- install openshift prerequisites `ansible-playbook -i /opt/host-3-11-cluster.localhost /opt/openshift-ansible/playbooks/prerequisites.yml`
-- install openshift cluster `ansible-playbook -i /opt/host-3-11-cluster.localhost /opt/openshift-ansible/playbooks/deploy_cluster.yml`
-- create user admin `oc create user admin && oc adm policy add-cluster-role-to-user cluster-admin admin`
-- uninstall `ansible-playbook -i /opt/host-3-11-cluster.localhost /opt/openshift-ansible/playbooks/adhoc/uninstall.yml`
-
 Open web console at <https://okd-master-01.vm.local:8443>
 
 Use helper script [openshift.sh](../openshift.sh) for common tasks: login, run example, ...

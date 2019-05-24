@@ -97,10 +97,11 @@ function openshift() {
       TMP=$( pwd )
       cd "${SCRIPT_PATH}/vagrant" || echo "ERROR: Folder ${SCRIPT_PATH}/vagrant not found..."
       vagrant ssh ${OPENSHIFT_VAGRANT_MASTER} -c "sudo ansible-playbook -i /opt/host-3-11-cluster.localhost /opt/ping.yml"
-      confirm "Are all sdb disks must point to a 10G drive "
+      confirm "Are all sdb disks bound to a 10G drive "
       vagrant ssh ${OPENSHIFT_VAGRANT_MASTER} -c "sudo ansible-playbook -i /opt/host-3-11-cluster.localhost /opt/openshift-ansible/playbooks/prerequisites.yml"
-      confirm "Are prerequisites installed?"
+      confirm "Are prerequisites installed "
       vagrant ssh ${OPENSHIFT_VAGRANT_MASTER} -c "sudo ansible-playbook -i /opt/host-3-11-cluster.localhost /opt/openshift-ansible/playbooks/deploy_cluster.yml"
+      cd "${TMP}" || echo "ERROR: Folder ${TMP} not found..."
     ;;
     vagrant-open-web-ui)
       open ${OPENSHIFT_VAGRANT_CLUSTER_URL}
