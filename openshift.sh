@@ -55,6 +55,7 @@ function usage {
   echo "  -h or --help          Opens this help menu"
   echo
   echo "  tasks:" 
+  echo "   ! vagrant-install-openshift  -> run all ansible and install openshift cluster on vagrant"
   echo "     vagrant-create-user-admin"
   echo "     vagrant-open-web-ui"
   echo "     vagrant-login-admin"
@@ -91,7 +92,16 @@ function openshift() {
     #
     # ---------- Vagrant ----------
     #     
-
+    vagrant-install-openshift)
+      confirm "Install openshift cluster on vagrant vms "
+      TMP=$( pwd )
+      cd "${SCRIPT_PATH}/vagrant" || echo "ERROR: Folder ${SCRIPT_PATH}/vagrant not found..."
+      vagrant ssh ${OPENSHIFT_VAGRANT_MASTER} -c "sudo ansible-playbook -i /opt/host-3-11-cluster.localhost /opt/ping.yml"
+      confirm "Are all sdb disks must point to a 10G drive "
+      vagrant ssh ${OPENSHIFT_VAGRANT_MASTER} -c "sudo ansible-playbook -i /opt/host-3-11-cluster.localhost /opt/openshift-ansible/playbooks/prerequisites.yml"
+      confirm "Are prerequisites installed?"
+      vagrant ssh ${OPENSHIFT_VAGRANT_MASTER} -c "sudo ansible-playbook -i /opt/host-3-11-cluster.localhost /opt/openshift-ansible/playbooks/deploy_cluster.yml"
+    ;;
     vagrant-open-web-ui)
       open ${OPENSHIFT_VAGRANT_CLUSTER_URL}
     ;;
@@ -330,21 +340,17 @@ function setEnvContext(){
   fi
 }
 
-
-function msg(){
-  echo ""
-  echo "-----------------------------------------------------------------------"
-  echo "${1}"
-  echo "-----------------------------------------------------------------------"
+function confirm {
+  echo
+  read -p " - ${1} [yes/no]? " -n 5 -r
+  echo # (optional) move to a new line
+  if [[ ! "$REPLY" == "yes" ]]
+  then
+      echo "aborted..."
+      exit 11
+  fi
 }
 
-function cmd(){
-  echo ""
-  echo " * Running: '${1}'"
-  echo ""
-  ${1}
-  echo ""
-}
 
 parseCli "$@"
 

@@ -5,19 +5,23 @@ Vagrant.require_version ">= 1.9.0"
 
 $fqdn = "vm.local"
 
+# ---------- config ----------
+
 # Masters
 $master_name_prefix = "okd-master"
 $master_instances = 1
 $master_memory = 1024 * 6
-$master_cpus = 4
-$master_executioncap = 75 # Max host cpu used by any vm
+$master_cpus = 2
+$master_executioncap = 100 # Max host cpu used by any vm
 
 # Worker
 $worker_name_prefix = "okd-worker"
 $worker_instances = 3
 $worker_memory = 1024 * 3
 $worker_cpus = 2
-$worker_executioncap = 75 # Max host cpu used by any vm
+$worker_executioncap = 100 # Max host cpu used by any vm
+
+# ---------- functions ----------
 
 # required to have accurate time synch - Must be enbaled for openshift ceph
 def config_time_sync(config, vb)
@@ -54,6 +58,7 @@ def add_hdd(vm_name, vb)
   vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 0, '--device', 0, '--type', 'hdd', '--medium', File.expand_path(file_disk)]
 end
 
+# add hdd to ide controller
 def add_hdd_ide(vm_name, vb, gb)
   root_dir = File.dirname(File.expand_path(__FILE__))
   file_disk = File.join(root_dir, "ide_hdd/#{vm_name}_hdd1.vdi")
@@ -63,9 +68,11 @@ def add_hdd_ide(vm_name, vb, gb)
   vb.customize ['storageattach', :id, '--storagectl', 'IDE', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', File.expand_path(file_disk)]
 end
 
+# ---------- main ----------
+
 Vagrant.configure("2") do |config|
-  # always use Vagrants insecure key
   config.vm.box = "centos/7"
+  # always use Vagrants insecure key
   config.ssh.insert_key = false
   config.vbguest.auto_update = true # required for accurate timesync
   config.vm.synced_folder ".", "/vagrant", disabled: true # disbale default shared folder
@@ -100,6 +107,7 @@ Vagrant.configure("2") do |config|
       end
     end
   end
+
   # --- Configure worker virtual machines
   (1..$worker_instances).each do |i|
     config.vm.define vm_name = "%s-%02d.%s" % [$worker_name_prefix, i, $fqdn] do |config_vm|
@@ -118,11 +126,11 @@ Vagrant.configure("2") do |config|
       config_vm.vm.network :private_network, ip: ip
     end
   end
-  # Common provisioner
+
+  # --- Common provisioner
   config.vm.provision :ansible do |ansible|
     ansible.playbook = "ansible/provision-all.yml"
     ansible.compatibility_mode="2.0"
   end
-
 
 end
