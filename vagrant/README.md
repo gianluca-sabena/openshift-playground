@@ -16,15 +16,15 @@ Install or upgrade required vagrant plugins:
 
 Run `vagrant up`
 
-## Prepare bastion node
+## Test vagrant vm
 
-Bastion node is the server where ansible installation scripts run
+Use ansible to ping vagrant virtual machines
 
 - Vagrant supports ansible provisioner
 - Vagrant generate an inventory files in `vagrant/.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory`
 - This inventory works from local terminal `export ANSIBLE_HOST_KEY_CHECKING=False && ansible-playbook -i vagrant/.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory vagrant/ansible/ping.yml`
 
-## Install cluster
+## Install openshift cluster
 
 Use [openshift.sh](../openshift.sh) with param `./openshift.sh vagrant-install-openshift`
 
