@@ -1,25 +1,21 @@
 
 # Openshift
 
-Test openshift with:
+Configure a centos cluster with vagrant and install full openshift cluster with ansible
 
-- [vagrant cluster](./vagrant/README.md) - Install a full cluster with official ansible scripts
-- [examples](./examples/README.md) - deploy examples to openshift
+- [vagrant cluster](./vagrant/) - Install a full cluster with official ansible scripts
+- [examples](./examples/) - deploy examples to openshift: rook, ...
 
-## Resources
-
-- Docs <https://docs.okd.io/3.11/welcome/index.html>
+Openshift Docs <https://docs.okd.io/3.11/welcome/index.html>
 
 ## CLI
 
-- Install on mac os x with brew `brew install openshift-cli`
-- run CLI from docker image openshift/origin-cli <https://hub.docker.com/r/openshift/origin-cli/> It is based on CentOS
-- Enable shell completion `source <(oc completion bash)` or `source <(oc completion zsh)`
-- Openshift CLI image openshift/origin-cli from <https://hub.docker.com/r/openshift/origin-cli/> It is based on CentOS
+- On mac os x install the cli with brew `brew install openshift-cli` then run `oc`
+- OR run the cli with docker `docker pull openshift/origin-cli` from <https://hub.docker.com/r/openshift/origin-cli/>
 
+## Notes
 
-
-## TODO
-
-- add example local-provisioner <https://docs.okd.io/3.11/install_config/configuring_local.html#local-volume-configure-local-provisioner>
-- add example for nfs volumes
+- Tip: enable shell completion `source <(oc completion bash)` or `source <(oc completion zsh)`
+- Openshift docker images <https://hub.docker.com/r/openshift/>
+- TODO: add example local-provisioner <https://docs.okd.io/3.11/install_config/configuring_local.html#local-volume-configure-local-provisioner>
+- TODO: add example for nfs volumes

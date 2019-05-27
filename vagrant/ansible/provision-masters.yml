@@ -12,6 +12,10 @@
   gather_facts: False # Faster
 
   tasks:
+  - name: Create ansible directory
+    file:
+      path: /opt/ansible
+      state: directory
   - copy:
       src: ./host-3-11-cluster.localhost
       dest: /opt/host-3-11-cluster.localhost

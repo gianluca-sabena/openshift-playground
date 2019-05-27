@@ -1,0 +1,12 @@
+---
+- hosts:
+  - all
+  become: yes
+  become_user: root
+  gather_facts: False # Faster
+
+  tasks:
+  - copy:
+      src: ./99-elasticsearch.conf
+      dest: /etc/sysctl.d/99-elasticsearch.conf
+  - shell: sysctl vm.max_map_count=262144

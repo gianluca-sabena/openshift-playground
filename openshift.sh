@@ -176,9 +176,56 @@ function openshift() {
       oc project "${OPENSHIFT_EXAMPLES_NAMESPACE}"
     ;;
 
+    # --- Istio / maistra
+    maistra-patch-master)
+      setEnvContext
+      confirm "Run ansible script to patch master config?"
+      export ANSIBLE_HOST_KEY_CHECKING=False && ansible-playbook -i "${SCRIPT_PATH}/vagrant/.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory" "${SCRIPT_PATH}/examples/maistra/ansible-masters.yaml"
+      confirm "Run ansible script to patch all nodes?"
+    ;;
+    maistra-operator-deploy)
+      setEnvContext
+      oc new-project istio-operator
+      oc new-project istio-system
+      oc apply -n istio-operator -f https://raw.githubusercontent.com/Maistra/istio-operator/maistra-0.10/deploy/maistra-operator.yaml   
+    ;;
+    maistra-control-plane-deploy)
+      setEnvContext
+      oc create -n istio-system -f "${SCRIPT_PATH}/examples/maistra/control-plane.yaml"
+    ;;
+    maistra-check)
+      setEnvContext
+      echo
+      echo " --- Check operator ..."
+      echo
+      oc get pods -n istio-operator -l name=istio-operator
+      echo
+      echo " --- Check control plane ..."
+      echo
+      oc get controlplane/basic-install -n istio-system --template='{{range .status.conditions}}{{printf "%s=%s, reason=%s, message=%s\n\n" .type .status .reason .message}}{{end}}'
+      echo
+      echo " --- Open kiali ..."
+      echo
+      ROUTE=$( oc get route -n istio-system kiali -o jsonpath='{.spec.host}')
+      echo "Kiali dashboard https://${ROUTE}"
+      open "https://${ROUTE}"
+    ;;
+    maistra-example-book-info-deploy)
+      setEnvContext
+      # From https://maistra.io/docs/examples/bookinfo/
+      oc new-project bookinfo
+      oc adm policy add-scc-to-user anyuid -z default -n bookinfo
+      oc adm policy add-scc-to-user privileged -z default -n bookinfo
+      oc -n bookinfo apply -f https://raw.githubusercontent.com/Maistra/bookinfo/master/bookinfo.yaml
+      oc -n bookinfo apply -f https://raw.githubusercontent.com/Maistra/bookinfo/master/bookinfo-gateway.yaml
+      oc -n bookinfo apply -f https://raw.githubusercontent.com/istio/istio/release-1.1/samples/bookinfo/networking/destination-rule-all-mtls.yaml
+      GATEWAY_URL=$(oc -n istio-system get route istio-ingressgateway -o jsonpath='{.spec.host}')
+      open http://${GATEWAY_URL}/productpage
+    ;;
     # --- rook ---
     # See readme.md
     example-rook-v13-r3-create)
+      setEnvContext
       # use a old ceph image, this works with replica 3, hostnetwork false and dashboard disabled
       oc label node okd-worker-01.vm.local role=storage-node
       oc label node okd-worker-02.vm.local role=storage-node
@@ -191,6 +238,7 @@ function openshift() {
       oc create -f "${SCRIPT_PATH}/examples/rook/dashboard-external-https.yaml"
     ;;
     example-rook-v13-r3-delete)
+      setEnvContext
       # official delete guide
       oc delete -n rook-ceph cephblockpool replicapool
       oc delete storageclass rook-ceph-block
@@ -212,6 +260,7 @@ function openshift() {
       export ANSIBLE_HOST_KEY_CHECKING=False && ansible-playbook -i .vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory ansible/rook-clean-data.yml
     ;;
     example-rook-v14-r1-create)
+      setEnvContext
       # Only work with 1 node, mon and operator on same node, networkhost = false and dashboard enabled
       oc label node okd-worker-01.vm.local role=storage-node
       oc create -f "${SCRIPT_PATH}/examples/rook/v14-r1/common.yaml"
@@ -222,6 +271,7 @@ function openshift() {
       oc create -f "${SCRIPT_PATH}/examples/rook/dashboard-external-https.yaml"
     ;;
     example-rook-v14-r1-delete)
+      setEnvContext
       # official delete guide
       oc delete -n rook-ceph cephblockpool replicapool
       oc delete storageclass rook-ceph-block
@@ -243,6 +293,7 @@ function openshift() {
       export ANSIBLE_HOST_KEY_CHECKING=False && ansible-playbook -i .vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory ansible/rook-clean-data.yml
     ;;
     example-rook-dashboard-open)
+      setEnvContext
       # see https://rook.github.io/docs/rook/v1.0/ceph-dashboard.html
       PSW=$( oc -n rook-ceph get secret rook-ceph-dashboard-password -o jsonpath="{['data']['password']}" | base64 --decode && echo )
       echo "Login with user 'admin' and password '${PSW}'"
@@ -250,25 +301,32 @@ function openshift() {
       open "https://${ROUTE}"
     ;;
     example-rook-test-pod-deploy)
+      setEnvContext
       oc create -f "${SCRIPT_PATH}/examples/rook/test-pod.yaml" -n rook-ceph
     ;;
     example-rook-test-pod-delete)
+      setEnvContext
       oc delete -f "${SCRIPT_PATH}/examples/rook/test-pod.yaml" -n rook-ceph
     ;;
     example-rook-info)
+      setEnvContext
       ${OS_CMD} -n rook-ceph get pod
     ;;
     # --- s2i python-web-server --- 
     example-s2i-python-web-server-deploy)
+      setEnvContext
       ${OS_CMD} create -f "${SCRIPT_PATH}/examples/s2i-python-web-server/openshift.yaml" -n "${OPENSHIFT_EXAMPLES_NAMESPACE}"
     ;;
     example-s2i-python-web-server-delete)
+      setEnvContext
       ${OS_CMD} delete -f "${SCRIPT_PATH}/examples/s2i-python-web-server/openshift.yaml" -n "${OPENSHIFT_EXAMPLES_NAMESPACE}"
     ;;
     example-s2i-python-web-server-info)
+      setEnvContext
       ${OS_CMD} describe -f "${SCRIPT_PATH}/examples/s2i-python-web-server/openshift.yaml" -n "${OPENSHIFT_EXAMPLES_NAMESPACE}"
     ;;
     example-s2i-python-web-server-console)
+      setEnvContext
       open "${OPENSHIFT_VAGRANT_CLUSTER_URL}/console/project/examples/overview"
       ROUTE=$( oc get route s2i-python-web-server  -o jsonpath='{.spec.host}' -n "${OPENSHIFT_EXAMPLES_NAMESPACE}" )
       open "http://${ROUTE}"
