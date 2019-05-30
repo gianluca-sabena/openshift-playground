@@ -12,7 +12,7 @@
   - shell: cp /etc/origin/master/master-config.yaml /opt/master-config.yaml.prepatch
     args:
       creates: /opt/master-config.yaml.prepatch
-  - shell: oc ex config patch /opt/master-config.yaml.prepatch -p "$(cat /opt/master-config.patch)" > /etc/origin/master/master-config.yaml && taouch /opt/master-config.patched
+  - shell: oc ex config patch /opt/master-config.yaml.prepatch -p "$(cat /opt/master-config.patch)" > /etc/origin/master/master-config.yaml && touch /opt/master-config.patched
     args:
       creates: /opt/master-config.patched
   - shell: /usr/local/bin/master-restart api

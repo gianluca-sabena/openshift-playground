@@ -71,11 +71,12 @@ function usage {
   echo "     example-s2i-python-web-server-info"
   echo "     example-s2i-python-web-server-console"
   echo "  rook: "
-  echo "     example-rook-v13-r3-create        "
-  echo "     example-rook-v13-r3-delete"
-  echo "     example-rook-v14-r1-create"
-  echo "     example-rook-v14-r1-delete"
-  echo "     example-rook-test-pod-deploy        "
+  echo "     example-rook-v13-r3-create | example-rook-v13-r3-delete"
+  echo "     example-rook-v14-r1-create | example-rook-v14-r1-delete"
+  echo "     example-rook-test-pod-deploy | example-rook-test-pod-delete"
+  echo "  maistra/istio:"
+  echo "     maistra-patch-master | maistra-operator-deploy | maistra-control-plane-deploy | maistra-check | maistra-uninstall "
+  echo "     maistra-example-book-info-deploy | maistra-example-book-info-delete"
   echo
 }
 
@@ -173,36 +174,44 @@ function openshift() {
 
     example-create-namespace)
       ${OS_CMD} new-project "${OPENSHIFT_EXAMPLES_NAMESPACE}"
-      oc project "${OPENSHIFT_EXAMPLES_NAMESPACE}"
+      ${OS_CMD} project "${OPENSHIFT_EXAMPLES_NAMESPACE}"
     ;;
-
     # --- Istio / maistra
     maistra-patch-master)
       setEnvContext
       confirm "Run ansible script to patch master config?"
       export ANSIBLE_HOST_KEY_CHECKING=False && ansible-playbook -i "${SCRIPT_PATH}/vagrant/.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory" "${SCRIPT_PATH}/examples/maistra/ansible-masters.yaml"
       confirm "Run ansible script to patch all nodes?"
+      export ANSIBLE_HOST_KEY_CHECKING=False && ansible-playbook -i "${SCRIPT_PATH}/vagrant/.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory" "${SCRIPT_PATH}/examples/maistra/ansible-nodes.yaml"
     ;;
     maistra-operator-deploy)
       setEnvContext
-      oc new-project istio-operator
-      oc new-project istio-system
-      oc apply -n istio-operator -f https://raw.githubusercontent.com/Maistra/istio-operator/maistra-0.10/deploy/maistra-operator.yaml   
+      ${OS_CMD} new-project istio-operator
+      ${OS_CMD} new-project istio-system
+      ${OS_CMD} apply -n istio-operator -f https://raw.githubusercontent.com/Maistra/istio-operator/maistra-0.10/deploy/maistra-operator.yaml   
     ;;
     maistra-control-plane-deploy)
       setEnvContext
-      oc create -n istio-system -f "${SCRIPT_PATH}/examples/maistra/control-plane.yaml"
+      ${OS_CMD} create -n istio-system -f "${SCRIPT_PATH}/examples/maistra/control-plane.yaml"
+    ;;
+    maistra-uninstall)
+      confirm "Delete maistra/istio oeprator and applications "
+      setEnvContext
+      ${OS_CMD} delete -n istio-system -f "${SCRIPT_PATH}/examples/maistra/control-plane.yaml"
+      ${OS_CMD} delete -n istio-operator -f https://raw.githubusercontent.com/Maistra/istio-operator/maistra-0.10/deploy/maistra-operator.yaml
+      ${OS_CMD} delete project istio-system
+      ${OS_CMD} delete project istio-operator
     ;;
     maistra-check)
       setEnvContext
       echo
       echo " --- Check operator ..."
       echo
-      oc get pods -n istio-operator -l name=istio-operator
+      ${OS_CMD} get pods -n istio-operator -l name=istio-operator
       echo
       echo " --- Check control plane ..."
       echo
-      oc get controlplane/basic-install -n istio-system --template='{{range .status.conditions}}{{printf "%s=%s, reason=%s, message=%s\n\n" .type .status .reason .message}}{{end}}'
+      ${OS_CMD} get controlplane/basic-install -n istio-system --template='{{range .status.conditions}}{{printf "%s=%s, reason=%s, message=%s\n\n" .type .status .reason .message}}{{end}}'
       echo
       echo " --- Open kiali ..."
       echo
@@ -213,14 +222,18 @@ function openshift() {
     maistra-example-book-info-deploy)
       setEnvContext
       # From https://maistra.io/docs/examples/bookinfo/
-      oc new-project bookinfo
-      oc adm policy add-scc-to-user anyuid -z default -n bookinfo
-      oc adm policy add-scc-to-user privileged -z default -n bookinfo
-      oc -n bookinfo apply -f https://raw.githubusercontent.com/Maistra/bookinfo/master/bookinfo.yaml
-      oc -n bookinfo apply -f https://raw.githubusercontent.com/Maistra/bookinfo/master/bookinfo-gateway.yaml
-      oc -n bookinfo apply -f https://raw.githubusercontent.com/istio/istio/release-1.1/samples/bookinfo/networking/destination-rule-all-mtls.yaml
+      ${OS_CMD} new-project bookinfo
+      ${OS_CMD} adm policy add-scc-to-user anyuid -z default -n bookinfo
+      ${OS_CMD} adm policy add-scc-to-user privileged -z default -n bookinfo
+      ${OS_CMD} -n bookinfo apply -f https://raw.githubusercontent.com/Maistra/bookinfo/master/bookinfo.yaml
+      ${OS_CMD} -n bookinfo apply -f https://raw.githubusercontent.com/Maistra/bookinfo/master/bookinfo-gateway.yaml
+      ${OS_CMD} -n bookinfo apply -f https://raw.githubusercontent.com/istio/istio/release-1.1/samples/bookinfo/networking/destination-rule-all.yaml
       GATEWAY_URL=$(oc -n istio-system get route istio-ingressgateway -o jsonpath='{.spec.host}')
-      open http://${GATEWAY_URL}/productpage
+      open "http://${GATEWAY_URL}/productpage"
+    ;;
+    maistra-example-book-info-delete)
+      setEnvContext
+      ${OS_CMD} delete project bookinfo
     ;;
     # --- rook ---
     # See readme.md
@@ -257,7 +270,7 @@ function openshift() {
       oc label node okd-worker-02.vm.local role-
       oc label node okd-worker-03.vm.local role-
       # delete data on vm
-      export ANSIBLE_HOST_KEY_CHECKING=False && ansible-playbook -i .vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory ansible/rook-clean-data.yml
+      export ANSIBLE_HOST_KEY_CHECKING=False && ansible-playbook -i "${SCRIPT_PATH}/vagrant/.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory" "${SCRIPT_PATH}/vagrant/ansible/rook-clean-data.yml"
     ;;
     example-rook-v14-r1-create)
       setEnvContext
@@ -270,6 +283,7 @@ function openshift() {
       oc create -f "${SCRIPT_PATH}/examples/rook/toolbox.yaml"
       oc create -f "${SCRIPT_PATH}/examples/rook/dashboard-external-https.yaml"
     ;;
+    # DOES NOT WORK!!! Many issues.... TEST ONLY
     example-rook-v14-r1-delete)
       setEnvContext
       # official delete guide

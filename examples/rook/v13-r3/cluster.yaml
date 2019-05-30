@@ -30,7 +30,7 @@ spec:
     allowMultiplePerNode: false
   dashboard:
     enabled: false
-  # hostNetwork: true REQUIRE to add scc networkhost to rook servvice account (see readme)
+  # hostNetwork: true
   network:
     hostNetwork: false
   rbdMirroring:
