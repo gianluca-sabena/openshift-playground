@@ -13,7 +13,8 @@ set -o pipefail # exit on any errors in piped commands
 
 declare OS_CMD="oc "
 declare OPENSHIFT_VAGRANT_MASTER="okd-master-01.vm.local"
-declare OPENSHIFT_VAGRANT_CLUSTER_URL="https://${OPENSHIFT_VAGRANT_MASTER}:8443"
+#declare OPENSHIFT_VAGRANT_CLUSTER_URL="https://${OPENSHIFT_VAGRANT_MASTER}:8443"
+declare OPENSHIFT_VAGRANT_CLUSTER_URL="https://127.0.0.1:8443"
 declare OPENSHIFT_VERSION="3.11"
 declare OPENSHIFT_EXAMPLES_NAMESPACE="examples"
 
@@ -116,6 +117,7 @@ function openshift() {
     # User admin password admin created at install time
     vagrant-login-admin)
       ${OS_CMD} login -u admin -p admin --server=${OPENSHIFT_VAGRANT_CLUSTER_URL} --insecure-skip-tls-verify --loglevel 5
+      ${OS_CMD} project default
       echo "Export this context: export OS_CONTEXT=$( ${OS_CMD} whoami -c)"
     ;;
 
@@ -228,8 +230,15 @@ function openshift() {
       ${OS_CMD} -n bookinfo apply -f https://raw.githubusercontent.com/Maistra/bookinfo/master/bookinfo.yaml
       ${OS_CMD} -n bookinfo apply -f https://raw.githubusercontent.com/Maistra/bookinfo/master/bookinfo-gateway.yaml
       ${OS_CMD} -n bookinfo apply -f https://raw.githubusercontent.com/istio/istio/release-1.1/samples/bookinfo/networking/destination-rule-all.yaml
-      GATEWAY_URL=$(oc -n istio-system get route istio-ingressgateway -o jsonpath='{.spec.host}')
+
+    ;;
+    maistra-example-book-info-check)
+      setEnvContext
+      GATEWAY_URL=$(${OS_CMD} -n istio-system get route istio-ingressgateway -o jsonpath='{.spec.host}')
       open "http://${GATEWAY_URL}/productpage"
+      ROUTE=$( ${OS_CMD} get route -n istio-system kiali -o jsonpath='{.spec.host}')
+      echo "Kiali dashboard https://${ROUTE}"
+      open "https://${ROUTE}"
     ;;
     maistra-example-book-info-delete)
       setEnvContext
