@@ -1,0 +1,12 @@
+apiVersion: kubedb.com/v1alpha1
+kind: Postgres
+metadata:
+  name: quick-postgres
+  #namespace: demo
+spec:
+  version: "10.2-v2"
+  replicas: 1
+  updateStrategy:
+      type: RollingUpdate
+  terminationPolicy: "DoNotTerminate"
+  storageType: Ephemeral

@@ -36,3 +36,4 @@ Use helper script [openshift.sh](../openshift.sh) for common tasks: login, run e
 
 - Tested with `openshift-ansible-3.11.114-1`
 - Add/fix nfs example <https://docs.okd.io/3.11/install/configuring_inventory_file.html#configuring-oab-storage>
+- Use NAT port forwarding because host-to-guest private network is slow
