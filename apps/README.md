@@ -1,6 +1,8 @@
 # Examples
 
-Execute examples with helper script [openshift.sh](../openshift.sh)
+Deploy apps to OpenShift [os-apps.sh](./os-apps.sh)
 
-- [rook cluster](./rook/README.md)
+- [kubedb-postgresql](./kubedb-postgresql)
+- [minio](./minio) Minio with custom CA and tls support
 - [s2i-python-web-server](./s2i-python-web-server)
+- Rook cluster (require vagrant with 3 nodes) see [Vagrant/apps/rook](../vagrant/apps/rook/README.md)
