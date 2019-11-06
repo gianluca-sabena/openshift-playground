@@ -4,9 +4,20 @@ metadata:
   name: quick-postgres
   #namespace: demo
 spec:
-  version: "10.2-v2"
+  # instant backup works with: 9.6.7-v4, 10.6-v2, 11.2
+  version: "11.2"
   replicas: 1
   updateStrategy:
       type: RollingUpdate
   terminationPolicy: "DoNotTerminate"
   storageType: Ephemeral
+  init:
+    scriptSource:
+      configMap:
+        name: pg-init-script
+  backupSchedule:
+    cronExpression: "@every 5m"
+    storageSecretName: kubedb-minio-secret
+    s3:
+      endpoint: "https://minio-service.apps-example.svc:9000/"
+      bucket: postgresql

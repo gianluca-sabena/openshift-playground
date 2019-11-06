@@ -1,0 +1,14 @@
+apiVersion: kubedb.com/v1alpha1
+kind: Snapshot
+metadata:
+  name: instant-snapshot
+  labels:
+    kubedb.com/kind: Postgres
+spec:
+  # Not a db name, but the name of k8s postgresql resource
+  databaseName: quick-postgres
+  storageSecretName: kubedb-minio-secret
+  s3:
+    endpoint: "https://minio-service.apps-example.svc:9000/"
+    bucket: postgresql
+

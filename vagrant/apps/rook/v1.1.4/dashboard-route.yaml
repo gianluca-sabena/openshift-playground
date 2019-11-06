@@ -1,4 +1,4 @@
-# From https://github.com/rook/rook/blob/release-1.0/cluster/examples/kubernetes/ceph/dashboard-external-https.yaml
+# From https://github.com/rook/rook/blob/release-1.1/cluster/examples/kubernetes/ceph/dashboard-external-http.yaml
 ---
 apiVersion: v1
 kind: Service
@@ -32,8 +32,8 @@ spec:
   to:
     kind: Service
     # Match against service metadata name
-    name: rook-ceph-mgr-dashboard-external-https 
+    name: rook-ceph-mgr-dashboard-external-https
   tls:
-    termination: passthrough 
+    termination: passthrough
   port:
     targetPort: dashboard

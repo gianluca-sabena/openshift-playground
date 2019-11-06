@@ -1,4 +1,4 @@
-# Vagrant
+# Vagrant OpenShift cluster
 
 Install ansible <https://docs.ansible.com/ansible/latest/index.html>
 
@@ -9,31 +9,29 @@ Install or upgrade required vagrant plugins:
 - `vagrant-hostmanager`
 - `vagrant-vbguest`
 
-## Vagrant cluster
+## Start cluster
 
-- Edit [vagrant file](./Vagrantfile) to tune resources: memory and cpu
+- Edit [vagrant file](./Vagrantfile) to tune resources, memory and cpu
 - (optional) Edit openshift [ansible inventory](./ansible/host-3-11-cluster.localhost)
+- Run `vagrant up`
+- Install OpenShift  with param `./os-vagrant.sh install-openshift`
+- Open console `./os-vagrant.sh console`
 
-Run `vagrant up`
+See more task and commands in [os-vagrant.sh](./os-vagrant.sh)
 
-## Test vagrant vm
+## Notes
 
-Use ansible to ping vagrant virtual machines
+### Optimization
+
+- Use NAT port forwarding because host-to-guest private network is slow
+
+### Vagrant
 
 - Vagrant supports ansible provisioner
 - Vagrant generate an inventory files in `vagrant/.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory`
 - This inventory works from local terminal `export ANSIBLE_HOST_KEY_CHECKING=False && ansible-playbook -i vagrant/.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory vagrant/ansible/ping.yml`
 
-## Install openshift cluster
+### Version tested
 
-Use [openshift.sh](../openshift.sh) with param `./openshift.sh vagrant-install-openshift`
+- OpenShift openshift-ansible-3.11.114-1 (k8s 1.11.0) + Rook v1.1.4 = flex volumes rbd and object store work
 
-Open web console at <https://okd-master-01.vm.local:8443>
-
-Use helper script [openshift.sh](../openshift.sh) for common tasks: login, run example, ...
-
-## Notes
-
-- Tested with `openshift-ansible-3.11.114-1`
-- Add/fix nfs example <https://docs.okd.io/3.11/install/configuring_inventory_file.html#configuring-oab-storage>
-- Use NAT port forwarding because host-to-guest private network is slow

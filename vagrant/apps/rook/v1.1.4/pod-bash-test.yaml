@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pod-test
+  name: pod-bash-test
 spec:
   accessModes:
     - ReadWriteOnce
@@ -14,23 +14,23 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: pod-test
+  name: pod-bash-test
   labels:
-    app: pod-test
+    app: pod-bash-test
 spec:
   terminationGracePeriodSeconds: 0
   nodeSelector:
     role: storage-node
   containers:
-    - name: pod-test
+    - name: pod-bash-test
       image: "centos:7" # Run as root
-      args: ["/bin/sh", "-c", "whoami; while true; do MSG=\"$(date) - $HOSTNAME - hello world\"; echo \"$MSG\"; echo \"$MSG\" >> /mnt/ceph-pod-test/log.txt;  sleep 10; done"]
+      args: ["/bin/sh", "-c", "whoami; while true; do MSG=\"$(date) - $HOSTNAME - hello world\"; echo \"$MSG\"; echo \"$MSG\" >> /mnt/ceph-pod-bash-test/log.txt;  sleep 10; done"]
       volumeMounts:
       - name: cephvol
-        mountPath: "/mnt/ceph-pod-test"
+        mountPath: "/mnt/ceph-pod-bash-test"
   volumes:
     - name: cephvol
       persistentVolumeClaim:
-        claimName: pod-test
+        claimName: pod-bash-test
 
 # 

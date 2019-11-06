@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#   OpenShift and k8s example applications
+#   OpenShift 
 #   check syntax with https://github.com/koalaman/shellcheck
 #
 
@@ -13,9 +13,13 @@ set -o pipefail # exit on any errors in piped commands
 declare OS_CONFIG="/tmp/openshift-config/openshift.conf"
 declare OS_NAMESPACE="apps-example"
 declare OS_CMD="oc --config=${OS_CONFIG} "
+declare OS_USER_ADMIN_NAME="admin"
+declare OS_USER_ADMIN_PASSWORD="admin"
+declare OS_USER_DEVELOPER_NAME="developer"
+declare OS_USER_DEVELOPER_PASSWORD="developer"
 declare SCRIPT_PATH; SCRIPT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 declare TMP_PATH="/tmp/openshift/"
-#declare CURRENT_PATH; CURRENT_PATH=$( pwd )
+declare CURRENT_PATH; CURRENT_PATH=$( pwd )
 
 # @info:  Parses and validates the CLI arguments
 # @args:	Global Arguments $@
@@ -24,8 +28,22 @@ function parseCli() {
   if [[ "$#" -eq 0 ]]; then
     echo "  ${0}: "
     echo ""
-    echo "               -action value               first param "
+    echo "     create-apps-namespace"
+    echo "     import-docker-image-busy-box"
+    echo "     s2i-python-web-server-deploy"
+    echo "     s2i-python-web-server-delete"
+    echo "     s2i-python-web-server-info"
+    echo "     s2i-python-web-server-console"
+    echo "     maistra-patch-master | maistra-operator-deploy | maistra-control-plane-deploy | maistra-check | maistra-uninstall "
+    echo "     maistra-example-book-info-deploy | maistra-example-book-info-delete"
+    echo
     exit 0
+  fi
+  # basic check
+  mkdir -p "${TMP_PATH}"
+  if [[ ! -f "${OS_CONFIG}" ]]; then
+    echo " openshift cli config file (${OS_CONFIG})  not found! Please login.."
+    exit 1
   fi
   while [[ "$#" -gt 0 ]]; do
     declare KEY="$1"
@@ -39,72 +57,130 @@ function parseCli() {
     #   echo "export OS_CMD=\"${OS_CMD}\""
     # ;;
     create-apps-namespace)
-      ${OS_CMD} new-project "${OS_NAMESPACE}"
+      [[ "$(${OS_CMD} whoami)" == "${OS_USER_ADMIN_NAME}" ]] || ( echo "Must be run as oc admin user... please login as admin!" && exit 1)
+      # Add rbac roles to developer user
+      ${OS_CMD} -n ${OS_NAMESPACE} adm policy add-role-to-user edit developer
+      ${OS_CMD} -n ${OS_NAMESPACE} adm policy add-role-to-user view developer
+      ${OS_CMD} new-project "${OS_NAMESPACE}" || echo "."
       ${OS_CMD} project "${OS_NAMESPACE}"
+
       ;;
     import-docker-image-busy-box)
       ${OS_CMD} -n "${OS_NAMESPACE}" import-image default/busysbox:latest --from=docker.io/library/busybox:latest --confirm
       ;;
     #
     #
+    # ---------- minio ----------
+    #
+    minio-create)
+      mkdir -p ${TMP_PATH}/minio
+      # crete cert to enable https (required by kubedb snapshot)
+      openssl genrsa -out ${TMP_PATH}/minio/private.key  2048
+      openssl req -new -x509 -days 3650 -key ${TMP_PATH}/minio/private.key -out ${TMP_PATH}/minio/public.crt -subj "/C=US/ST=state/L=location/O=organization/CN=*.${OS_NAMESPACE}.svc"
+      ${OS_CMD} -n ${OS_NAMESPACE} create secret generic tls-ssl-minio --from-file=${TMP_PATH}/minio/private.key --from-file=${TMP_PATH}/minio/public.crt
+      # deploy 
+      ${OS_CMD} -n ${OS_NAMESPACE} create -f "${SCRIPT_PATH}/minio/deployment.yaml"
+      ${OS_CMD} -n ${OS_NAMESPACE} create -f "${SCRIPT_PATH}/minio/service.yaml"
+      ${OS_CMD} -n ${OS_NAMESPACE} create -f "${SCRIPT_PATH}/minio/route.yaml"
+    ;;
+    minio-delete)
+      ${OS_CMD} -n ${OS_NAMESPACE} delete -f "${SCRIPT_PATH}/minio/deployment.yaml" || echo "Not found..."
+      ${OS_CMD} -n ${OS_NAMESPACE} delete -f "${SCRIPT_PATH}/minio/service.yaml" || echo "Not found..."
+      ${OS_CMD} -n ${OS_NAMESPACE} delete -f "${SCRIPT_PATH}/minio/route.yaml" || echo "Not found..."
+      ${OS_CMD} -n ${OS_NAMESPACE} delete secret tls-ssl-minio || echo "Not found..."
+    ;;
+
+    #
+    #
     # ---------- kubedb ----------
     #
-    app-kubedb-install)
-      mkdir -p "${SCRIPT_PATH}/${TMP_PATH}"
-      cd "${SCRIPT_PATH}/${TMP_PATH}"
-      ${OS_CMD} create namespace kubedb || echo ""
-      #Use this config for kubedb bash script
-      export KUBECONFIG="${OS_CONFIG}"
-      curl -fsSL https://raw.githubusercontent.com/kubedb/cli/0.12.0/hack/deploy/kubedb.sh | bash -s --  --rbac --enable-validating-webhook=false --enable-mutating-webhook=false
-    ;;
-    app-kubedb-uninstall)
-      mkdir -p "${SCRIPT_PATH}/${TMP_PATH}"
-      cd "${SCRIPT_PATH}/${TMP_PATH}"
-      #Use this config for kubedb bash script
-      export KUBECONFIG="${OS_CONFIG}"      
-      curl -fsSL https://raw.githubusercontent.com/kubedb/cli/0.12.0/hack/deploy/kubedb.sh | bash -s -- --uninstall 
-    ;;
-    app-kubedb-pgadmin-create)
-      ${OS_CMD} create namespace demo || echo ""
-      ${OS_CMD} adm policy add-scc-to-user anyuid system:serviceaccount:demo:default
-      ${OS_CMD} -n ${OS_NAMESPACE} create -f "${SCRIPT_PATH}/kubedb-postgresql/0.12/pgadmin.yaml"
-    ;;
-    app-kubedb-pgadmin-delete)
-      ${OS_CMD} -n ${OS_NAMESPACE} delete -f "${SCRIPT_PATH}/kubedb-postgresql/0.12/pgadmin.yaml"
-    ;;
-    app-kubedb-pgadmin-port-forward)
-      ${OS_CMD} port-forward -n ${OS_NAMESPACE} svc/pgadmin 8080:80
-    ;;
-    app-kubedb-postgresql-scc-create)
+    kubedb-postgresql-scc-create)
+      [[ "$(${OS_CMD} whoami)" == "${OS_USER_ADMIN_NAME}" ]] || ( echo "Must be run as oc admin user... please login as admin!" && exit 1)
       ${OS_CMD} create -f "${SCRIPT_PATH}/kubedb-postgresql/0.12/scc.yaml" || echo "."
       # Allow operator to start postgres with a specific service account
       # Add a custom scc (anyuid + 2 Capabilities)
       ${OS_CMD} adm policy add-scc-to-user kubedb-postgresql system:serviceaccount:${OS_NAMESPACE}:quick-postgres
       ${OS_CMD} adm policy add-scc-to-user kubedb-postgresql system:serviceaccount:${OS_NAMESPACE}:quick-postgres-snapshot
       # Allow unprivileged user to use kubedb crd/api/operator
-      oc --config=/tmp/openshift-config/openshift.conf -n ${OS_NAMESPACE} adm policy add-role-to-user kubedb:core:edit developer
-      oc --config=/tmp/openshift-config/openshift.conf -n ${OS_NAMESPACE} adm policy add-role-to-user kubedb:core:view developer
+      ${OS_CMD} -n ${OS_NAMESPACE} adm policy add-role-to-user kubedb:core:edit developer
+      ${OS_CMD} -n ${OS_NAMESPACE} adm policy add-role-to-user kubedb:core:view developer
+      # pgadmin requires anyuid
+      ${OS_CMD} adm policy add-scc-to-user anyuid system:serviceaccount:${OS_NAMESPACE}:default
     ;;
-    app-kubedb-postgresql-scc-delete)
+    kubedb-postgresql-scc-delete)
+      [[ "$(${OS_CMD} whoami)" == "${OS_USER_ADMIN_NAME}" ]] || ( echo "Must be run as oc admin user... please login as admin!" && exit 1)
       ${OS_CMD} adm policy remove-scc-from-user kubedb-postgresql system:serviceaccount:${OS_NAMESPACE}:quick-postgres
       ${OS_CMD} adm policy remove-scc-from-user kubedb-postgresql system:serviceaccount:${OS_NAMESPACE}:quick-postgres-snapshot
       ${OS_CMD} delete -f "${SCRIPT_PATH}/kubedb-postgresql/0.12/scc.yaml" || echo "."
     ;;
-    app-kubedb-postgresql-create)
+    kubedb-install)
+      mkdir -p "${SCRIPT_PATH}/${TMP_PATH}"
+      cd "${SCRIPT_PATH}/${TMP_PATH}"
+      #${OS_CMD} create namespace kubedb || echo ""
+      #Use this config for kubedb bash script
+      export KUBECONFIG="${OS_CONFIG}"
+      curl -fsSL https://raw.githubusercontent.com/kubedb/cli/0.12.0/hack/deploy/kubedb.sh | bash -s --  --rbac --enable-validating-webhook=false --enable-mutating-webhook=false
+    ;;
+    kubedb-uninstall)
+      mkdir -p "${SCRIPT_PATH}/${TMP_PATH}"
+      cd "${SCRIPT_PATH}/${TMP_PATH}"
+      #Use this config for kubedb bash script
+      export KUBECONFIG="${OS_CONFIG}"      
+      curl -fsSL https://raw.githubusercontent.com/kubedb/cli/0.12.0/hack/deploy/kubedb.sh | bash -s -- --uninstall 
+    ;;
+    kubedb-postgresql-create)
+      # create minio secret to allow scheduled backups
+      "./${0}" kubedb-minio-secret-create
+      # Create sql init script
+      ${OS_CMD} -n ${OS_NAMESPACE} create configmap pg-init-script --from-literal=data.sql="$(curl -fsSL https://raw.githubusercontent.com/kubedb/postgres-init-scripts/master/data.sql)"
       ${OS_CMD} -n ${OS_NAMESPACE} create -f "${SCRIPT_PATH}/kubedb-postgresql/0.12/postgresql.yaml"
     ;;
-    app-kubedb-postgresql-delete)
+    kubedb-postgresql-delete)
+      "./${0}" kubedb-minio-secret-delete
+      ${OS_CMD} -n ${OS_NAMESPACE} delete configmap pg-init-script
       ${OS_CMD} -n ${OS_NAMESPACE} delete -f "${SCRIPT_PATH}/kubedb-postgresql/0.12/postgresql.yaml"
     ;;
-    app-kubedb-postgresql-dump-config)
+    kubedb-postgresql-dump-config)
       echo "--- pgadmin config ---"
-      echo "pgAdmin user: admin"
-      echo "pgAdmin password: admin"
+      echo "pgAdmin user: ${OS_USER_ADMIN_NAME}"
+      echo "pgAdmin password: ${OS_USER_ADMIN_PASSWORD}"
       echo "postgresql user: $(${OS_CMD} get secrets -n ${OS_NAMESPACE} quick-postgres-auth -o jsonpath='{.data.\POSTGRES_USER}' | base64 -D)"
       echo "postgresql password: $(${OS_CMD} get secrets -n ${OS_NAMESPACE} quick-postgres-auth -o jsonpath='{.data.\POSTGRES_PASSWORD}' | base64 -D)"
       echo "host: quick-postgres.${OS_NAMESPACE}"
       echo "port: 5432"
       echo "maintenance database: postgres"
+    ;;
+    kubedb-pgadmin-create)
+      #require anyuid
+      ${OS_CMD} -n ${OS_NAMESPACE} create -f "${SCRIPT_PATH}/kubedb-postgresql/0.12/pgadmin.yaml"
+    ;;
+    kubedb-pgadmin-delete)
+      ${OS_CMD} -n ${OS_NAMESPACE} delete -f "${SCRIPT_PATH}/kubedb-postgresql/0.12/pgadmin.yaml"
+    ;;
+    kubedb-pgadmin-port-forward)
+      ${OS_CMD} -n ${OS_NAMESPACE} port-forward  svc/pgadmin 8080:80
+    ;;
+    kubedb-minio-secret-create)
+      # Keep aws name AWS_SECRET_ACCESS_KEY and AWS_ACCESS_KEY_ID
+      echo -n 'minio' > "${TMP_PATH}/AWS_ACCESS_KEY_ID"
+      echo -n 'minio123' > "${TMP_PATH}/AWS_SECRET_ACCESS_KEY"
+      # rename minio ca ceert because filename is the secret key
+      cp "${TMP_PATH}/minio/public.crt" "${TMP_PATH}/CA_CERT_DATA"
+      ${OS_CMD} -n ${OS_NAMESPACE} create secret generic kubedb-minio-secret \
+          --from-file="${TMP_PATH}/AWS_ACCESS_KEY_ID" \
+          --from-file="${TMP_PATH}/AWS_SECRET_ACCESS_KEY" \
+          --from-file="${TMP_PATH}/CA_CERT_DATA"
+    ;;
+    kubedb-minio-secret-delete)
+      ${OS_CMD} -n ${OS_NAMESPACE} delete secret kubedb-minio-secret || echo ""
+    ;;
+    kubedb-postgresql-backup-minio-create)
+      "./${0}" kubedb-minio-secret-create
+      ${OS_CMD} -n ${OS_NAMESPACE} create -f "${SCRIPT_PATH}/kubedb-postgresql/0.12/backup.yaml"
+    ;;
+    kubedb-postgresql-backup-minio-delete)
+      "./${0}" kubedb-minio-secret-delete
+      ${OS_CMD} -n ${OS_NAMESPACE} delete -f "${SCRIPT_PATH}/kubedb-postgresql/0.12/backup.yaml"
     ;;
 
     #

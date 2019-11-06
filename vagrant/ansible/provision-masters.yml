@@ -50,6 +50,8 @@
   - git:
       repo: 'https://github.com/openshift/openshift-ansible.git'
       dest: '/opt/openshift-ansible'
+      # worked with: openshift-ansible-3.11.114-1
+      # latest: openshift-ansible-3.11.154-1
       version: openshift-ansible-3.11.114-1 
       
 #openshift-ansible-3.11.103-1 # Fix this https://github.com/openshift/openshift-ansible/pull/10812

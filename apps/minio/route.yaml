@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Route
+metadata:
+  name: minio-route
+spec:
+  to:
+    kind: Service
+    # Match against service metadata name
+    name: minio-service
+  tls:
+    termination: passthrough
