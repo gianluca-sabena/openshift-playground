@@ -15,11 +15,11 @@ declare OS_NAMESPACE="apps-example"
 declare OS_CMD="oc --config=${OS_CONFIG} "
 declare OS_USER_ADMIN_NAME="admin"
 declare OS_USER_ADMIN_PASSWORD="admin"
-declare OS_USER_DEVELOPER_NAME="developer"
-declare OS_USER_DEVELOPER_PASSWORD="developer"
+#declare OS_USER_DEVELOPER_NAME="developer"
+#declare OS_USER_DEVELOPER_PASSWORD="developer"
 declare SCRIPT_PATH; SCRIPT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 declare TMP_PATH="/tmp/openshift/"
-declare CURRENT_PATH; CURRENT_PATH=$( pwd )
+#declare CURRENT_PATH; CURRENT_PATH=$( pwd )
 
 # @info:  Parses and validates the CLI arguments
 # @args:	Global Arguments $@
