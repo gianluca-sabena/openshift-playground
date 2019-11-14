@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #   Openshift cluster helper script
-#   
+#
 #   check syntax with https://github.com/koalaman/shellcheck
 #
 
@@ -21,8 +21,10 @@ declare OS_USER_DEVELOPER_PASSWORD="developer"
 declare TMP_PATH="/tmp/openshift"
 declare OS_CONFIG="${TMP_PATH}/openshift.conf"
 declare OS_CMD="oc --config=${OS_CONFIG} "
-declare SCRIPT_PATH; SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-declare CURRENT_PATH; CURRENT_PATH=$(pwd)
+declare SCRIPT_PATH
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+declare CURRENT_PATH
+CURRENT_PATH=$(pwd)
 
 # Check platform
 declare PLATFORM
@@ -101,7 +103,7 @@ function openshift() {
   #
   check-ansible-connection)
     export ANSIBLE_HOST_KEY_CHECKING=False && ansible-playbook -i "${SCRIPT_PATH}/.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory" "${SCRIPT_PATH}/ansible/ping.yml"
-  ;;
+    ;;
   install-openshift)
     confirm "Install openshift cluster on vagrant vms "
     TMP=$(pwd)
